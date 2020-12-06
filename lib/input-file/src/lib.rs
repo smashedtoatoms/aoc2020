@@ -6,8 +6,12 @@ static DEFAULT_FILE: &'static str = "./inputs/input.txt";
 
 /// Returns list of numbers from file at path specified in arguments passed in
 /// to the app.  If no file is specified, it uses the default.
-pub fn get_numbers() -> Vec<i32> {
-    return get_strings()
+///
+/// # Arguments
+///
+/// * `delimiter` - sets the delimiter used to split the file
+pub fn get_numbers(delimiter: &str) -> Vec<i32> {
+    return get_strings(delimiter)
         .into_iter()
         .map(|x| x.parse::<i32>().unwrap())
         .collect();
@@ -25,15 +29,20 @@ fn get_path_from_args() -> PathBuf {
 }
 
 /// Returns list of strings from file at path specified in arguments passed in
-/// to the app.  If no file is specified, it uses the default.
-pub fn get_strings() -> Vec<String> {
+/// to the app with blank entries removed.  If no file is specified, it uses
+/// the default.
+///
+/// # Arguments
+///
+/// * `delimiter` - sets the delimiter used to split the file
+pub fn get_strings(delimiter: &str) -> Vec<String> {
     let path = get_path_from_args();
     return fs::read_to_string(&path)
         .expect(&format!(
             "failed to read file: {}, put file where it belongs or specify a file",
             path.as_path().display().to_string()
         ))
-        .split("\n")
+        .split(delimiter)
         .into_iter()
         .filter(|x| x.to_owned() != "")
         .map(|x| x.to_owned())

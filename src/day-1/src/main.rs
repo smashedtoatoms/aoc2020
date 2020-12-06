@@ -2,7 +2,7 @@ use input_file::get_numbers;
 
 /// AOC1
 fn main() {
-    let numbers = get_numbers();
+    let numbers = get_numbers("\n");
     println!(
         "Pair Product:  {:?}\nTriad Product: {:?}\n",
         get_2020_pair_product(&numbers),

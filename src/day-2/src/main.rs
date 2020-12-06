@@ -8,7 +8,7 @@ struct PasswordMetadata {
 }
 
 fn main() {
-    let values = get_strings();
+    let values = get_strings("\n");
     let passwords: Vec<PasswordMetadata> = values.iter().map(|v| parse_line(v)).collect();
 
     println!(
