@@ -1,4 +1,4 @@
-use input_file::get_strings;
+use input_file::Input;
 
 struct PasswordMetadata {
     pass: String,
@@ -8,8 +8,9 @@ struct PasswordMetadata {
 }
 
 fn main() {
-    let values = get_strings("\n");
-    let passwords: Vec<PasswordMetadata> = values.iter().map(|v| parse_line(v)).collect();
+    let input = Input::from_args().unwrap();
+    let values = input.strings("\n");
+    let passwords: Vec<PasswordMetadata> = values.map(|v| parse_line(v)).collect();
 
     println!(
         "Valid Passwords (v1): {}\nValid Passwords (v2): {}",

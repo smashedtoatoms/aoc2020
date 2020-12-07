@@ -1,8 +1,9 @@
-use input_file::get_numbers;
+use input_file::Input;
 
 /// AOC1
 fn main() {
-    let numbers = get_numbers("\n");
+    let input = Input::from_args().unwrap();
+    let numbers: Vec<u32> = input.numbers("\n").collect();
     println!(
         "Pair Product:  {:?}\nTriad Product: {:?}\n",
         get_2020_pair_product(&numbers),
@@ -12,40 +13,33 @@ fn main() {
 
 /// Returns the product of the pair of values in the provided list that add up
 /// to 2020.
-fn get_2020_pair_product(numbers: &Vec<i32>) -> i32 {
-    return numbers
-        .iter()
-        .enumerate()
-        .find_map(|(i, &number)| {
-            match numbers
-                .iter()
-                .enumerate()
-                .find(|(i2, &number2)| &i != i2 && (number + number2 == 2020))
-            {
-                Some((_, last)) => Some(number * last),
-                None => None,
+fn get_2020_pair_product(numbers: &Vec<u32>) -> u32 {
+    // clippy should be blowing up here and it isn't
+    for (i, a) in numbers.iter().enumerate() {
+        for b in &numbers[i..] {
+            if a + b == 2020 {
+                return a * b;
             }
-        })
-        .unwrap();
+        }
+    }
+
+    panic!("failed to find the pair")
 }
 
 /// Returns the product of the triad of values in the provided list that up to
 /// 2020.
-fn get_2020_triad_product(numbers: &Vec<i32>) -> i32 {
-    return numbers
-        .iter()
-        .enumerate()
-        .find_map(|(i, &number)| {
-            numbers.iter().enumerate().find_map(|(i2, &number2)| {
-                match numbers.iter().enumerate().find(|(i3, &number3)| {
-                    i != i2 && &i != i3 && &i2 != i3 && (number + number2 + number3 == 2020)
-                }) {
-                    Some((_, last)) => Some(number * number2 * last),
-                    None => None,
+fn get_2020_triad_product(numbers: &[u32]) -> u32 {
+    for (i, a) in numbers.iter().enumerate() {
+        for (j, b) in numbers[i..].iter().enumerate() {
+            for c in &numbers[j..] {
+                if a + b + c == 2020 {
+                    return a * b * c;
                 }
-            })
-        })
-        .unwrap();
+            }
+        }
+    }
+
+    panic!("failed to find the triad")
 }
 
 #[cfg(test)]

@@ -1,7 +1,8 @@
-use input_file::get_strings;
+use input_file::Input;
 
 fn main() {
-    let values = get_strings("\n\n");
+    let input = Input::from_args().unwrap();
+    let values = input.strings("\n").collect();
     println!(
         "Anyone Yes:   {}\nEveryone Yes: {}",
         get_anyone_yes(&values),
@@ -9,7 +10,7 @@ fn main() {
     );
 }
 
-fn get_anyone_yes(raw_values: &Vec<String>) -> usize {
+fn get_anyone_yes(raw_values: &Vec<&str>) -> usize {
     return raw_values
         .iter()
         .fold(Vec::new(), |mut acc, val| {
@@ -23,7 +24,7 @@ fn get_anyone_yes(raw_values: &Vec<String>) -> usize {
         .sum();
 }
 
-fn get_everyone_yes(raw_values: &Vec<String>) -> usize {
+fn get_everyone_yes(raw_values: &Vec<&str>) -> usize {
     return raw_values
         .iter()
         .fold(Vec::new(), |mut acc, val| {
@@ -54,14 +55,8 @@ mod tests {
     use crate::get_anyone_yes;
     use crate::get_everyone_yes;
 
-    fn get_test_data() -> Vec<String> {
-        return vec![
-            "abc".to_string(),
-            "a\nb\nc".to_string(),
-            "ab\nac".to_string(),
-            "a\na\na\na".to_string(),
-            "b".to_string(),
-        ];
+    fn get_test_data() -> Vec<&'static str> {
+        return vec!["abc", "a\nb\nc", "ab\nac", "a\na\na\na", "b"];
     }
 
     #[test]

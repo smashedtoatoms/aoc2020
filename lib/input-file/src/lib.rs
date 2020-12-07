@@ -1,50 +1,34 @@
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 static DEFAULT_FILE: &'static str = "./inputs/input.txt";
 
-/// Returns list of numbers from file at path specified in arguments passed in
-/// to the app.  If no file is specified, it uses the default.
-///
-/// # Arguments
-///
-/// * `delimiter` - sets the delimiter used to split the file
-pub fn get_numbers(delimiter: &str) -> Vec<i32> {
-    return get_strings(delimiter)
-        .into_iter()
-        .map(|x| x.parse::<i32>().unwrap())
-        .collect();
+pub struct Input {
+    contents: String,
 }
 
-/// Returns the path to the file specified in the arguments passed into the app
-/// and returns a default if no arguments can be found.
-fn get_path_from_args() -> PathBuf {
-    return Path::new(
-        &((env::args().collect::<Vec<String>>()).get(1))
-            .cloned()
-            .unwrap_or(DEFAULT_FILE.to_string()),
-    )
-    .to_path_buf();
-}
+impl Input {
+    pub fn new(path: &Path) -> Result<Self, std::io::Error> {
+        let contents = fs::read_to_string(path)?;
+        Ok(Self { contents })
+    }
 
-/// Returns list of strings from file at path specified in arguments passed in
-/// to the app with blank entries removed.  If no file is specified, it uses
-/// the default.
-///
-/// # Arguments
-///
-/// * `delimiter` - sets the delimiter used to split the file
-pub fn get_strings(delimiter: &str) -> Vec<String> {
-    let path = get_path_from_args();
-    return fs::read_to_string(&path)
-        .expect(&format!(
-            "failed to read file: {}, put file where it belongs or specify a file",
-            path.as_path().display().to_string()
-        ))
-        .split(delimiter)
-        .into_iter()
-        .filter(|x| x.to_owned() != "")
-        .map(|x| x.to_owned())
-        .collect();
+    pub fn strings<'a>(&'a self, delimiter: &'a str) -> impl Iterator<Item = &str> + 'a {
+        self.contents.split(delimiter).filter(|x| !x.is_empty())
+    }
+
+    pub fn numbers<'a, N: std::str::FromStr>(
+        &'a self,
+        delimiter: &'a str,
+    ) -> impl Iterator<Item = N> + 'a {
+        self.strings(delimiter).filter_map(|x| x.parse().ok())
+    }
+
+    pub fn from_args() -> Result<Self, std::io::Error> {
+        let mut args = env::args().skip(1);
+        let arg = args.next().unwrap_or_else(|| DEFAULT_FILE.to_string());
+        let path = Path::new(&arg);
+        Self::new(&path)
+    }
 }
