@@ -1,23 +1,8 @@
-[package]
-name = "AOC2020"
-version = "0.1.0"
-authors = ["Jason Legler <j@legler.io>"]
-edition = "2018"
+[workspace]
 
-[dependencies]
-
-[lib]
-name = "input_file"
-path = "lib/input-file/src/lib.rs"
-
-[[bin]]
-name = "day-1"
-path = "src/day-1/src/main.rs"
-
-[[bin]]
-name = "day-2"
-path = "src/day-2/src/main.rs"
-
-[[bin]]
-name = "day-6"
-path = "src/day-6/src/main.rs"
+members = [
+    "src/day-1",
+    "src/day-2",
+    "src/day-6",
+    "lib/input-file",
+]

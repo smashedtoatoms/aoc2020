@@ -13,8 +13,7 @@ fn main() {
 
 /// Returns the product of the pair of values in the provided list that add up
 /// to 2020.
-fn get_2020_pair_product(numbers: &Vec<u32>) -> u32 {
-    // clippy should be blowing up here and it isn't
+fn get_2020_pair_product(numbers: &[u32]) -> u32 {
     for (i, a) in numbers.iter().enumerate() {
         for b in &numbers[i..] {
             if a + b == 2020 {

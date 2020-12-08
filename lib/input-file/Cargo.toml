@@ -1,5 +1,5 @@
 [package]
-name = "input-file"
+name = "input_file"
 version = "0.1.0"
 authors = ["Jason Legler <j@legler.io>"]
 edition = "2018"
