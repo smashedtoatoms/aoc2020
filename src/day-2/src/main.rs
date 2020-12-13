@@ -1,5 +1,7 @@
+use anyhow::{anyhow, Result};
 use input_file::Input;
 
+/// Contains password and rules for password validity.
 struct PasswordMetadata {
     pass: String,
     min: usize,
@@ -8,77 +10,86 @@ struct PasswordMetadata {
 }
 
 /// AOC2
-fn main() {
-    let input = Input::from_args().unwrap();
-    let values = input.strings("\n");
-    let passwords: Vec<PasswordMetadata> = values.map(|v| parse_line(v)).collect();
+fn main() -> Result<()> {
+    let passwords = Input::from_args()?
+        .strings("\n")
+        .map(|v| parse_line(v))
+        .collect::<Result<Vec<PasswordMetadata>>>()?;
 
     println!(
         "Valid Passwords (v1): {}\nValid Passwords (v2): {}",
         get_valid_pw_count_v1(&passwords),
         get_valid_pw_count_v2(&passwords)
     );
+    Ok(())
 }
 
 /// Returns a count of passwords that conform to the v1 algorithm.
 fn get_valid_pw_count_v1(passwords: &[PasswordMetadata]) -> usize {
-    passwords
-        .iter()
-        .filter(|password| {
-            let char_count = password
-                .pass
-                .chars()
-                .filter(|c| c == &password.valid_char)
-                .count();
-            password.min <= char_count && password.max >= char_count
-        })
-        .count()
+    let mut password_count: usize = 0;
+    for p in passwords {
+        let char_count = p.pass.chars().filter(|c| c == &p.valid_char).count();
+        if p.min <= char_count && p.max >= char_count {
+            password_count += 1;
+        }
+    }
+    password_count
 }
 
 /// Returns a count of the passwords that conform to the v2 algorithm.
 fn get_valid_pw_count_v2(passwords: &[PasswordMetadata]) -> usize {
-    passwords
-        .iter()
-        .filter(|password| {
-            password
-                .pass
-                .char_indices()
-                .fold(false, |acc, (i, letter)| {
-                    match i == password.min - 1 || i == password.max - 1 {
-                        true => acc ^ (letter == password.valid_char),
-                        _ => acc,
-                    }
-                })
-        })
-        .count()
+    let mut password_count: usize = 0;
+    for p in passwords {
+        let mut is_valid = false;
+        for (i, letter) in p.pass.char_indices() {
+            if (i == p.min - 1 || i == p.max - 1) && (letter == p.valid_char) {
+                is_valid = !is_valid;
+            }
+        }
+        if is_valid {
+            password_count += 1;
+        }
+    }
+    password_count
 }
 
-/// Returns string parsed into PasswordMetadata...  This is a shit-show.
-fn parse_line(line: &str) -> PasswordMetadata {
+/// Returns PasswordMetadata parsed from a string...  There has to be a better way...
+fn parse_line(line: &str) -> Result<PasswordMetadata> {
     let items: Vec<&str> = line.split(' ').collect();
-    let min_max: Vec<usize> = items
+    let min_max = items
         .get(0)
-        .unwrap()
+        .ok_or_else(|| anyhow!("failed to get min_max value from split"))?
         .split('-')
-        .map(|x| x.parse::<usize>().unwrap())
-        .collect();
-    let valid_char: char = items
+        .map(|x| x.parse::<usize>())
+        .collect::<Result<Vec<usize>, std::num::ParseIntError>>()?;
+    let min = min_max
+        .get(0)
+        .ok_or_else(|| anyhow!("failed to parse min"))?
+        .to_owned();
+    let max = min_max
         .get(1)
-        .unwrap()
+        .ok_or_else(|| anyhow!("failed to parse min"))?
+        .to_owned();
+    let valid_char = items
+        .get(1)
+        .ok_or_else(|| anyhow!("failed to get valid_char from split"))?
         .replace(":", "")
         .chars()
         .collect::<Vec<char>>()
         .get(0)
-        .unwrap()
+        .ok_or_else(|| anyhow!("failed to get valid_char from vector"))?
         .to_owned();
-    let pass = items.get(2).unwrap().to_owned();
+    let pass = items
+        .get(2)
+        .ok_or_else(|| anyhow!("failed to parse password"))?
+        .to_string();
 
-    PasswordMetadata {
-        pass: pass.to_string(),
-        min: min_max.get(0).unwrap().to_owned(),
-        max: min_max.get(1).unwrap().to_owned(),
+    Ok(PasswordMetadata {
+        pass,
+        min,
+        max,
         valid_char,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -90,7 +101,7 @@ mod tests {
 
     #[test]
     fn parses_line() {
-        let parsed = parse_line("8-10 r: wat");
+        let parsed = parse_line("8-10 r: wat").unwrap();
         assert_eq!(parsed.min, 8);
         assert_eq!(parsed.max, 10);
         assert_eq!(parsed.pass, "wat");
@@ -99,32 +110,17 @@ mod tests {
 
     #[test]
     fn gets_count_v1() {
-        let pws = vec![
-            PasswordMetadata {
-                pass: "abcde".to_owned(),
-                min: 1,
-                max: 3,
-                valid_char: 'a',
-            },
-            PasswordMetadata {
-                pass: "cdefg".to_owned(),
-                min: 1,
-                max: 3,
-                valid_char: 'b',
-            },
-            PasswordMetadata {
-                pass: "ccccccccc".to_owned(),
-                min: 2,
-                max: 9,
-                valid_char: 'c',
-            },
-        ];
-        assert_eq!(get_valid_pw_count_v1(&pws), 2);
+        assert_eq!(get_valid_pw_count_v1(&get_passwords()), 2);
     }
 
     #[test]
     fn gets_count_v2() {
-        let pws = vec![
+        assert_eq!(get_valid_pw_count_v2(&get_passwords()), 1);
+    }
+
+    /// Returns test data.
+    fn get_passwords() -> Vec<PasswordMetadata> {
+        vec![
             PasswordMetadata {
                 pass: "abcde".to_owned(),
                 min: 1,
@@ -143,7 +139,6 @@ mod tests {
                 max: 9,
                 valid_char: 'c',
             },
-        ];
-        assert_eq!(get_valid_pw_count_v2(&pws), 1);
+        ]
     }
 }

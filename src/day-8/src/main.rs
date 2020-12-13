@@ -1,33 +1,38 @@
+use anyhow::{anyhow, Result};
 use input_file::Input;
 
+/// An individual instruction is represented here.
 #[derive(Clone, Debug)]
 struct Instruction {
-    verb: String,
-    amount: i32,
+    op: String,
+    count: i32,
 }
 
 impl Instruction {
-    pub fn new(verb: String, amount: i32) -> Result<Self, std::io::Error> {
-        Ok(Self { verb, amount })
+    /// Returns a new instruction.
+    fn new(op: String, count: i32) -> Result<Self> {
+        Ok(Self { op, count })
     }
 
-    pub fn parse(lines: Vec<&str>) -> Vec<Instruction> {
+    /// Takes an iterable and returns a Vector of instructions.
+    pub fn from_iter<'a>(lines: impl Iterator<Item = &'a str>) -> Result<Vec<Instruction>> {
         lines
-            .iter()
-            .map(|v| {
-                let mut raw_op = v.split(' ');
-                let verb = raw_op.next().unwrap();
-                let amount = (raw_op.next().unwrap()).parse::<i32>().unwrap();
-                Instruction::new(verb.to_string(), amount).unwrap()
+            .map(|line| {
+                let mut raw_op = line.split(' ');
+                let op = raw_op.next().ok_or_else(|| anyhow!("failed to get op"))?;
+                let count = raw_op
+                    .next()
+                    .ok_or_else(|| anyhow!("failed to get count"))?
+                    .parse::<i32>()?;
+                Instruction::new(op.to_string(), count)
             })
             .collect()
     }
 }
 
 /// AOC8
-fn main() {
-    let input = Input::from_args().unwrap();
-    let instructions = Instruction::parse(input.strings("\n").collect());
+fn main() -> Result<()> {
+    let instructions = Instruction::from_iter(Input::from_args()?.strings("\n"))?;
     let (is_clean_exit, accumulator) = find_loop_in_boot(&instructions);
     println!(
         "Run 1 accumulator: {}, cleanly exited: {}",
@@ -38,24 +43,26 @@ fn main() {
         "Fix 1 accumulator: {}, cleanly exited: {}",
         accumulator, is_clean_exit
     );
+    Ok(())
 }
 
-fn find_loop_in_boot(instructions: &[Instruction]) -> (bool, i32) {
+/// Returns where the boot sequence looped and whether it exited cleanly.
+fn find_loop_in_boot(instructions: &[Instruction]) -> (i32, bool) {
     let mut acc: i32 = 0;
     let mut node: usize = 0;
     let mut history: Vec<usize> = Vec::new();
 
     while !history.iter().any(|n| n == &node) {
         let instruction = &instructions[node];
-        match instruction.verb.as_str() {
+        match instruction.op.as_str() {
             "acc" => {
                 history.push(node);
-                acc += instruction.amount;
+                acc += instruction.count;
                 node += 1;
             }
             "jmp" => {
                 history.push(node);
-                node = (node as i32 + instruction.amount) as usize;
+                node = (node as i32 + instruction.count) as usize;
             }
             _ => {
                 history.push(node);
@@ -63,30 +70,31 @@ fn find_loop_in_boot(instructions: &[Instruction]) -> (bool, i32) {
             }
         }
         if node == instructions.len() {
-            return (true, acc);
+            return (acc, true);
         }
         if node > instructions.len() {
-            return (false, acc);
+            return (acc, false);
         }
     }
 
-    (false, acc)
+    (acc, false)
 }
 
-fn fix_loop_in_boot(instructions: &[Instruction]) -> (bool, i32) {
+/// Returns the instruction it repaired and whether it exited cleanly.
+fn fix_loop_in_boot(instructions: &[Instruction]) -> (i32, bool) {
     let mut modifiable_instructions: Vec<Instruction> = instructions.to_vec();
-    let mut result: (bool, i32) = (false, 0);
+    let mut result: (i32, bool) = (0, false);
     for (i, instruction) in instructions.iter().enumerate() {
-        if instruction.verb == "nop" && instruction.amount != 0 {
-            modifiable_instructions[i].verb = "jmp".to_string();
+        if instruction.op == "nop" && instruction.count != 0 {
+            modifiable_instructions[i].op = "jmp".to_string();
             result = find_loop_in_boot(&modifiable_instructions[..]);
-            modifiable_instructions[i].verb = "nop".to_string();
-        } else if instruction.verb == "jmp" {
-            modifiable_instructions[i].verb = "nop".to_string();
+            modifiable_instructions[i].op = "nop".to_string();
+        } else if instruction.op == "jmp" {
+            modifiable_instructions[i].op = "nop".to_string();
             result = find_loop_in_boot(&modifiable_instructions[..]);
-            modifiable_instructions[i].verb = "jmp".to_string();
+            modifiable_instructions[i].op = "jmp".to_string();
         }
-        if result.0 {
+        if result.1 {
             break;
         }
     }
@@ -98,54 +106,55 @@ fn fix_loop_in_boot(instructions: &[Instruction]) -> (bool, i32) {
 mod tests {
     use crate::{find_loop_in_boot, fix_loop_in_boot, Instruction};
 
-    fn get_instructions() -> Vec<Instruction> {
-        vec![
-            Instruction {
-                amount: 0,
-                verb: "nop".to_string(),
-            },
-            Instruction {
-                amount: 1,
-                verb: "acc".to_string(),
-            },
-            Instruction {
-                amount: 4,
-                verb: "jmp".to_string(),
-            },
-            Instruction {
-                amount: 3,
-                verb: "acc".to_string(),
-            },
-            Instruction {
-                amount: -3,
-                verb: "jmp".to_string(),
-            },
-            Instruction {
-                amount: -99,
-                verb: "acc".to_string(),
-            },
-            Instruction {
-                amount: 1,
-                verb: "acc".to_string(),
-            },
-            Instruction {
-                amount: -4,
-                verb: "jmp".to_string(),
-            },
-            Instruction {
-                amount: 6,
-                verb: "acc".to_string(),
-            },
-        ]
-    }
-
     #[test]
     fn test_finding_loop() {
-        assert_eq!(find_loop_in_boot(&get_instructions()), (false, 5));
+        assert_eq!(find_loop_in_boot(&get_instructions()), (5, false));
     }
 
     #[test]
     fn test_fixing_loop() {
-        assert_eq!(fix_loop_in_boot(&get_instructions()), (true, 8));
+        assert_eq!(fix_loop_in_boot(&get_instructions()), (8, true));
+    }
+
+    /// Returns test data.
+    fn get_instructions() -> Vec<Instruction> {
+        vec![
+            Instruction {
+                count: 0,
+                op: "nop".to_string(),
+            },
+            Instruction {
+                count: 1,
+                op: "acc".to_string(),
+            },
+            Instruction {
+                count: 4,
+                op: "jmp".to_string(),
+            },
+            Instruction {
+                count: 3,
+                op: "acc".to_string(),
+            },
+            Instruction {
+                count: -3,
+                op: "jmp".to_string(),
+            },
+            Instruction {
+                count: -99,
+                op: "acc".to_string(),
+            },
+            Instruction {
+                count: 1,
+                op: "acc".to_string(),
+            },
+            Instruction {
+                count: -4,
+                op: "jmp".to_string(),
+            },
+            Instruction {
+                count: 6,
+                op: "acc".to_string(),
+            },
+        ]
     }
 }

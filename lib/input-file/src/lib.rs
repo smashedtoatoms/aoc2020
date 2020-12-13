@@ -1,15 +1,16 @@
+use anyhow::Result;
 use std::env;
 use std::fs;
 use std::path::Path;
 
-static DEFAULT_FILE: &'static str = "./inputs/input.txt";
+static DEFAULT_FILE: &str = "./inputs/input.txt";
 
 pub struct Input {
     contents: String,
 }
 
 impl Input {
-    pub fn new(path: &Path) -> Result<Self, std::io::Error> {
+    pub fn new(path: &Path) -> Result<Self> {
         let contents = fs::read_to_string(path)?;
         Ok(Self { contents })
     }
@@ -25,7 +26,7 @@ impl Input {
         self.strings(delimiter).filter_map(|x| x.parse().ok())
     }
 
-    pub fn from_args() -> Result<Self, std::io::Error> {
+    pub fn from_args() -> Result<Self> {
         let mut args = env::args().skip(1);
         let arg = args.next().unwrap_or_else(|| DEFAULT_FILE.to_string());
         let path = Path::new(&arg);
