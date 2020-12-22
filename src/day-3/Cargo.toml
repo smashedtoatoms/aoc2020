@@ -1,9 +1,0 @@
-[package]
-name = "day-3"
-version = "0.1.0"
-authors = ["Jason Legler <j@legler.io>"]
-edition = "2018"
-
-[dependencies]
-input_file = { path = "../../lib/input-file" }
-anyhow = "1.0"
