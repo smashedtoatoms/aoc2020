@@ -10,8 +10,8 @@ struct Instruction {
 
 impl Instruction {
     /// Returns a new instruction.
-    fn new(op: String, count: i32) -> Result<Self> {
-        Ok(Self { op, count })
+    fn new(op: String, count: i32) -> Self {
+        Self { op, count }
     }
 
     /// Takes an iterable and returns a Vector of instructions.
@@ -24,7 +24,7 @@ impl Instruction {
                     .next()
                     .ok_or_else(|| anyhow!("failed to get count"))?
                     .parse::<i32>()?;
-                Instruction::new(op.to_string(), count)
+                Ok(Instruction::new(op.to_string(), count))
             })
             .collect()
     }
